@@ -1,0 +1,7 @@
+.DS_Store
+
+# Photos are not tracked: the Mac holds the originals and they're copied to the server separately.
+/articles/images/*
+!/articles/images/.gitkeep
+/gallery/*
+!/gallery/.gitkeep
