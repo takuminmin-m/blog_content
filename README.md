@@ -51,6 +51,56 @@ tags:
 - 拡張子は小文字の `.jpg` / `.png`。
 - 元画像は配信されない（透かし入りの縮小版だけ）ので、長辺 3000px 程度に書き出してから置けば十分。
 
+## サイトに反映する手順
+
+サーバーは Raspberry Pi で、5分ごとに自動で更新を取り込む。記事と写真で手順が違う。
+
+| 変えたもの | やること | 反映 |
+| --- | --- | --- |
+| 記事・固定の紹介文（`articles/*.md`、`static_pages/`） | このリポジトリを commit して push | 5分以内 |
+| 写真（`articles/images/`、`gallery/`） | アプリのリポジトリで `deploy/bin/push-photos <ssh host>` | 実行した直後 |
+
+### 記事（Markdown）
+
+```bash
+git add articles static_pages
+git commit -m "add 記事名"
+git push
+```
+
+Pi が5分ごとに pull して取り込む。記事の本文はリクエストのたびにファイルから読むので、本文だけの修正は pull されればすぐ変わる。タイトル・日付・タグを変えたときも、同じ更新で DB に取り込まれる。
+
+### 写真
+
+写真は git に入らないので、Mac から Pi に直接送る。アプリのリポジトリ（`~/Documents/blog`）で実行する。
+
+```bash
+deploy/bin/push-photos <ssh host>    # 例：deploy/bin/push-photos pi@blog.local
+```
+
+これが順に行うこと：
+
+1. `bin/rails contents:date_gallery` で、日付のないギャラリーの写真に EXIF の撮影日を付ける（元画像のある Mac でしかできない）。
+2. `rsync --delete` で `articles/images/` と `gallery/` を Pi に送る。**Mac で消した写真は Pi からも消える。**
+3. Pi の `deploy/bin/update` を実行し、写真を DB に取り込む。タイマーを待たずに反映される。
+
+日付を付けるだけで送らないときは、アプリのリポジトリで `bin/rails contents:date_gallery` を実行する。
+
+### 記事に写真を載せるとき
+
+記事と写真は別々に送るので、**写真を先に送ってから記事を push する**。順序が逆だと、記事が存在しない画像を参照している間は表示が崩れる。
+
+1. `articles/images/` に画像を置く。
+2. `deploy/bin/push-photos <ssh host>`
+3. 記事を commit して push。
+
+### うまく反映されないとき
+
+- 写真の送信が `No photos in content/` で止まる：Mac の `content/` に写真がない。誤って Pi の写真を全消去しないための停止なので、`content/` が正しい場所にあるか確かめる。
+- 記事が出ない：front matter に `title` と `date` があるか確かめる。足りないと取り込みが失敗する。
+- 同じ名前の写真が2つある：写真はファイル名だけで区別される。`articles/images/` と `gallery/` の間でも重複させない。
+- Pi の状況：`ssh <host>` して `journalctl -u blog-update -f` で更新のログを見る。
+
 ## 記事を更新するとき
 
 - 誤字や表現の修正：そのまま直す。履歴は git に残る。
