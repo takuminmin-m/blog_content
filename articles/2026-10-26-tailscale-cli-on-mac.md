@@ -4,6 +4,7 @@ date: 2026-10-26
 tags:
   - tailscale
   - mac
+  - claude
   - all-AI-generated
 ---
 
