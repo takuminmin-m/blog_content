@@ -4,6 +4,7 @@ date: 2026-10-21
 tags:
   - linux
   - gpu
+  - claude
 ---
 
 自分用のメモ。
